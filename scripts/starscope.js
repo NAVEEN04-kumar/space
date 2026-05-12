@@ -4,7 +4,7 @@ const DEG = Math.PI / 180;
 import { STARS } from '../data/stars.js';
 
 let userLat = null, userLon = null;
-let compassHeading = 0, deviceAlt = 45, deviceGamma = 0;
+let compassHeading = 0, deviceAlt = 45, deviceBeta = 90, deviceGamma = 0;
 let scanResults = [];
 let simMode = false;
 let targetStar = null;
@@ -116,6 +116,7 @@ function handleOrientation(e) {
     document.getElementById('val-az').textContent = Math.round(compassHeading) + '°';
   }
   if (e.beta !== null) {
+    deviceBeta = e.beta;
     deviceAlt = Math.min(90, Math.max(0, 90 - Math.abs(e.beta)));
     document.getElementById('val-alt').textContent = Math.round(deviceAlt) + '°';
   }
@@ -206,7 +207,28 @@ function computeVisible() {
   const lon = userLon || 80.27;
   const lst = getSiderealTime(lon);
   const heading = compassHeading;
-  const fov = 60;
+  
+  const A = heading * DEG;
+  const B = deviceBeta * DEG;
+  const G = deviceGamma * DEG;
+
+  // Rotation matrix from device to world (Z-X'-Y'')
+  // Transpose elements to go from world to device:
+  const r00 = Math.cos(A)*Math.cos(G) - Math.sin(A)*Math.sin(B)*Math.sin(G);
+  const r01 = Math.sin(A)*Math.cos(G) + Math.cos(A)*Math.sin(B)*Math.sin(G);
+  const r02 = -Math.cos(B)*Math.sin(G);
+
+  const r10 = -Math.sin(A)*Math.cos(B);
+  const r11 = Math.cos(A)*Math.cos(B);
+  const r12 = Math.sin(B);
+
+  const r20 = Math.cos(A)*Math.sin(G) + Math.sin(A)*Math.sin(B)*Math.cos(G);
+  const r21 = Math.sin(A)*Math.sin(G) - Math.cos(A)*Math.sin(B)*Math.cos(G);
+  const r22 = Math.cos(B)*Math.cos(G);
+
+  const centerX = window.innerWidth / 2;
+  const centerY = window.innerHeight / 2;
+  const focalLength = (window.innerWidth / 2) / Math.tan(30 * DEG); // 60 deg FOV
 
   const visible = [];
 
@@ -222,31 +244,34 @@ function computeVisible() {
 
     if (pos.alt < 5) continue;
 
-    let azDiff = ((pos.az - heading + 540) % 360) - 180;
-    let altDiff = pos.alt - deviceAlt;
-
-    let screenX = window.innerWidth / 2 + (azDiff / fov) * (window.innerWidth * 0.4);
-    let screenY = window.innerHeight / 2 - (altDiff / fov) * (window.innerHeight * 0.35);
-
-    // Apply roll rotation (gamma)
-    const centerX = window.innerWidth / 2;
-    const centerY = window.innerHeight / 2;
-    const dx = screenX - centerX;
-    const dy = screenY - centerY;
-    const angle = -deviceGamma * DEG; // Negative to counter screen rotation
+    const altR = pos.alt * DEG;
+    const azR = pos.az * DEG;
     
-    screenX = centerX + dx * Math.cos(angle) - dy * Math.sin(angle);
-    screenY = centerY + dx * Math.sin(angle) + dy * Math.cos(angle);
+    // World vector (X=East, Y=North, Z=Up)
+    const Wx = Math.cos(altR) * Math.sin(azR);
+    const Wy = Math.cos(altR) * Math.cos(azR);
+    const Wz = Math.sin(altR);
 
-    // Update inView based on screen coordinates
-    const inView = screenX >= 0 && screenX <= window.innerWidth && screenY >= 0 && screenY <= window.innerHeight;
+    // Device vector
+    const Dx = r00 * Wx + r01 * Wy + r02 * Wz;
+    const Dy = r10 * Wx + r11 * Wy + r12 * Wz;
+    const Dz = r20 * Wx + r21 * Wy + r22 * Wz;
+
+    let screenX = centerX;
+    let screenY = centerY;
+    let inView = false;
+
+    if (Dz < 0) { // Star is in front of camera
+      screenX = centerX + (Dx / -Dz) * focalLength;
+      screenY = centerY - (Dy / -Dz) * focalLength;
+      
+      inView = screenX >= 0 && screenX <= window.innerWidth && screenY >= 0 && screenY <= window.innerHeight;
+    }
 
     visible.push({
       ...star,
       alt: pos.alt,
       az: pos.az,
-      azDiff,
-      altDiff,
       inView,
       screenX,
       screenY,
@@ -281,69 +306,7 @@ function drawOverlay() {
   const canvas = document.getElementById('overlay-canvas');
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  for (const star of scanResults) {
-    if (!star.inView) continue;
-
-    const x = star.screenX, y = star.screenY;
-    if (x < 0 || x > canvas.width || y < 0 || y > canvas.height) continue;
-
-    const brightness = Math.max(0.3, 1 - (star.mag + 1.5) / 6);
-    const size = star.type === 'planet' ? 10 : Math.max(2, 6 * brightness);
-
-    if (star.type === 'planet') {
-      ctx.beginPath();
-      ctx.arc(x, y, size, 0, Math.PI * 2);
-      ctx.fillStyle = star.name === 'Jupiter' ? '#ffa726' :
-                      star.name === 'Saturn' ? '#ffe082' :
-                      star.name === 'Mars' ? '#ef5350' : '#fff9c4';
-      ctx.fill();
-    } else {
-      ctx.beginPath();
-      ctx.arc(x, y, size, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(255, 253, 231, ${brightness})`;
-      ctx.fill();
-    }
-
-    // Circle indicator
-    ctx.beginPath();
-    ctx.arc(x, y, size + 8, 0, Math.PI * 2);
-    ctx.strokeStyle = star.exoplanets > 0 ? 'rgba(179,157,219,0.7)' :
-                      star.type === 'planet' ? 'rgba(255,167,38,0.6)' : 'rgba(79,195,247,0.5)';
-    ctx.lineWidth = 0.8;
-    ctx.stroke();
-
-    // Label
-    ctx.fillStyle = star.exoplanets > 0 ? '#b39ddb' :
-                    star.type === 'planet' ? '#ffa726' : 'rgba(255,255,255,0.9)';
-    ctx.font = `500 11px 'Space Mono', monospace`;
-    ctx.fillText(star.name, x + size + 12, y + 4);
-
-    if (star.constellation !== 'Current position') {
-      ctx.fillStyle = 'rgba(255,255,255,0.35)';
-      ctx.font = `9px 'Space Mono', monospace`;
-      ctx.fillText(star.constellation, x + size + 12, y + 16);
-    }
-
-    if (star.exoplanets > 0) {
-      ctx.fillStyle = '#b39ddb';
-      ctx.font = `bold 9px 'Space Mono', monospace`;
-      ctx.fillText(`${star.exoplanets} exoplanet${star.exoplanets > 1 ? 's' : ''}`, x + size + 12, y + 28);
-    }
-
-    // Draw target highlight
-    if (targetStar && star.name === targetStar.name) {
-      ctx.beginPath();
-      ctx.arc(x, y, size + 15, 0, Math.PI * 2);
-      ctx.strokeStyle = '#00e676';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      
-      ctx.fillStyle = '#00e676';
-      ctx.font = `bold 10px 'Space Mono', monospace`;
-      ctx.fillText("🎯 TARGETED", x - 30, y - size - 20);
-    }
-  }
+  // Drawing disabled for "plain cam" mode as requested by user.
 }
 
 // ── Panel ──
@@ -430,9 +393,26 @@ if (document.querySelector('.start-btn')) {
   // Canvas click listener for targeted star
   const canvas = document.getElementById('overlay-canvas');
   if (canvas) {
-    canvas.addEventListener('click', () => {
-      if (targetStar) {
-        showDetail(targetStar);
+    canvas.addEventListener('click', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const clickY = e.clientY - rect.top;
+      
+      let closestStar = null;
+      let minDistance = Infinity;
+      
+      for (const star of scanResults) {
+        if (star.inView) {
+          const dist = Math.sqrt(Math.pow(star.screenX - clickX, 2) + Math.pow(star.screenY - clickY, 2));
+          if (dist < minDistance && dist < 50) { // 50px threshold
+            minDistance = dist;
+            closestStar = star;
+          }
+        }
+      }
+      
+      if (closestStar) {
+        showDetail(closestStar);
       }
     });
   }
