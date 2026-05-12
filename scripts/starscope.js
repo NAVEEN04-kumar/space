@@ -4,7 +4,7 @@ const DEG = Math.PI / 180;
 import { STARS } from '../data/stars.js';
 
 let userLat = null, userLon = null;
-let compassHeading = 0, deviceAlt = 45;
+let compassHeading = 0, deviceAlt = 45, deviceGamma = 0;
 let scanResults = [];
 let simMode = false;
 let targetStar = null;
@@ -97,7 +97,9 @@ function startRenderLoop() {
 // ── Sensors ──
 function startSensors() {
   if (window.DeviceOrientationEvent) {
-    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+    if ('ondeviceorientationabsolute' in window) {
+      window.addEventListener('deviceorientationabsolute', handleOrientation);
+    } else if (typeof DeviceOrientationEvent.requestPermission === 'function') {
       DeviceOrientationEvent.requestPermission().then(state => {
         if (state === 'granted') window.addEventListener('deviceorientation', handleOrientation);
       });
@@ -116,6 +118,9 @@ function handleOrientation(e) {
   if (e.beta !== null) {
     deviceAlt = Math.min(90, Math.max(0, 90 - Math.abs(e.beta)));
     document.getElementById('val-alt').textContent = Math.round(deviceAlt) + '°';
+  }
+  if (e.gamma !== null) {
+    deviceGamma = e.gamma;
   }
 }
 
@@ -220,7 +225,21 @@ function computeVisible() {
     let azDiff = ((pos.az - heading + 540) % 360) - 180;
     let altDiff = pos.alt - deviceAlt;
 
-    const inView = Math.abs(azDiff) < fov && Math.abs(altDiff) < fov * 0.6;
+    let screenX = window.innerWidth / 2 + (azDiff / fov) * (window.innerWidth * 0.4);
+    let screenY = window.innerHeight / 2 - (altDiff / fov) * (window.innerHeight * 0.35);
+
+    // Apply roll rotation (gamma)
+    const centerX = window.innerWidth / 2;
+    const centerY = window.innerHeight / 2;
+    const dx = screenX - centerX;
+    const dy = screenY - centerY;
+    const angle = -deviceGamma * DEG; // Negative to counter screen rotation
+    
+    screenX = centerX + dx * Math.cos(angle) - dy * Math.sin(angle);
+    screenY = centerY + dx * Math.sin(angle) + dy * Math.cos(angle);
+
+    // Update inView based on screen coordinates
+    const inView = screenX >= 0 && screenX <= window.innerWidth && screenY >= 0 && screenY <= window.innerHeight;
 
     visible.push({
       ...star,
@@ -229,8 +248,8 @@ function computeVisible() {
       azDiff,
       altDiff,
       inView,
-      screenX: window.innerWidth / 2 + (azDiff / fov) * (window.innerWidth * 0.4),
-      screenY: window.innerHeight / 2 - (altDiff / fov) * (window.innerHeight * 0.35),
+      screenX,
+      screenY,
     });
   }
 
