@@ -282,8 +282,6 @@ function computeVisible() {
   scanResults = visible.slice(0, 14);
 
   // Find star closest to center of screen
-  const centerX = window.innerWidth / 2;
-  const centerY = window.innerHeight / 2;
   let minDistance = Infinity;
   targetStar = null;
 
