@@ -7,6 +7,7 @@ let userLat = null, userLon = null;
 let compassHeading = 0, deviceAlt = 45;
 let scanResults = [];
 let simMode = false;
+let targetStar = null;
 
 // ── Time ──
 function updateTime() {
@@ -236,6 +237,23 @@ function computeVisible() {
   visible.sort((a, b) => a.mag - b.mag);
   scanResults = visible.slice(0, 14);
 
+  // Find star closest to center of screen
+  const centerX = window.innerWidth / 2;
+  const centerY = window.innerHeight / 2;
+  let minDistance = Infinity;
+  targetStar = null;
+
+  for (const star of scanResults) {
+    if (star.inView) {
+      const dist = Math.sqrt(Math.pow(star.screenX - centerX, 2) + Math.pow(star.screenY - centerY, 2));
+      // Only target if it's within a reasonable distance (e.g., 100 pixels)
+      if (dist < minDistance && dist < 100) {
+        minDistance = dist;
+        targetStar = star;
+      }
+    }
+  }
+
   drawOverlay();
 }
 
@@ -292,6 +310,19 @@ function drawOverlay() {
       ctx.fillStyle = '#b39ddb';
       ctx.font = `bold 9px 'Space Mono', monospace`;
       ctx.fillText(`${star.exoplanets} exoplanet${star.exoplanets > 1 ? 's' : ''}`, x + size + 12, y + 28);
+    }
+
+    // Draw target highlight
+    if (targetStar && star.name === targetStar.name) {
+      ctx.beginPath();
+      ctx.arc(x, y, size + 15, 0, Math.PI * 2);
+      ctx.strokeStyle = '#00e676';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      
+      ctx.fillStyle = '#00e676';
+      ctx.font = `bold 10px 'Space Mono', monospace`;
+      ctx.fillText("🎯 TARGETED", x - 30, y - size - 20);
     }
   }
 }
@@ -375,6 +406,15 @@ if (document.querySelector('.start-btn')) {
   document.querySelector('.perm-btn').addEventListener('click', requestPermissions);
   document.querySelector('.perm-skip').addEventListener('click', launchSimMode);
   document.querySelector('.panel-close').addEventListener('click', closePanel);
-  document.querySelector('.scan-btn').addEventListener('click', scanSky);
   document.querySelector('.modal-close').addEventListener('click', closeDetail);
+  
+  // Canvas click listener for targeted star
+  const canvas = document.getElementById('overlay-canvas');
+  if (canvas) {
+    canvas.addEventListener('click', () => {
+      if (targetStar) {
+        showDetail(targetStar);
+      }
+    });
+  }
 }
