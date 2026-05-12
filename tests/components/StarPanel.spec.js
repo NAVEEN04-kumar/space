@@ -31,4 +31,13 @@ describe("StarPanel Component", () => {
     const list = document.getElementById('star-list');
     expect(list.innerHTML).toContain('Point at the sky');
   });
+
+  it("should handle stars with missing properties", () => {
+    const mockStars = [{ name: 'Mystery Star', type: 'star', mag: 2.0, icon: '★' }];
+    showPanel(mockStars);
+    
+    const list = document.getElementById('star-list');
+    expect(list.children.length).toBe(1);
+    expect(list.innerHTML).toContain('Mystery Star');
+  });
 });

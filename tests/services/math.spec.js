@@ -71,4 +71,36 @@ describe("StarScope Projection", () => {
     expect(result.screenX).toBeDefined();
     expect(result.screenY).toBeDefined();
   });
+
+  it("should return inView false for star behind the camera", () => {
+    const alt = -45; // Below horizon
+    const az = 0;
+    const heading = 0;
+    const beta = 90;
+    const gamma = 0;
+    const centerX = 500;
+    const centerY = 500;
+    const focalLength = 500;
+
+    const result = projectStar(alt, az, heading, beta, gamma, centerX, centerY, focalLength);
+
+    expect(result.inView).toBe(false);
+  });
+
+  it("should handle extreme orientation values", () => {
+    const alt = 45;
+    const az = 0;
+    const heading = 350; // Near 360
+    const beta = 180; // Upside down
+    const gamma = 90; // Tilted
+    const centerX = 500;
+    const centerY = 500;
+    const focalLength = 500;
+
+    const result = projectStar(alt, az, heading, beta, gamma, centerX, centerY, focalLength);
+
+    expect(result).toBeDefined();
+    expect(result.screenX).toBeDefined();
+    expect(result.screenY).toBeDefined();
+  });
 });
