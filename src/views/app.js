@@ -171,7 +171,6 @@ function drawOverlay() {
 }
 
 // ── Event Listeners ──
-document.addEventListener('DOMContentLoaded', () => {
   const startBtn = document.querySelector('.start-btn');
   const permBtn = document.querySelector('.perm-btn');
   const permSkip = document.querySelector('.perm-skip');
@@ -209,4 +208,3 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
-});
