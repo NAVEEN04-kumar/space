@@ -85,6 +85,14 @@ function startLocation() {
   });
 }
 
+function startRenderLoop() {
+  function loop() {
+    computeVisible();
+    requestAnimationFrame(loop);
+  }
+  loop();
+}
+
 // ── Sensors ──
 function startSensors() {
   if (window.DeviceOrientationEvent) {
@@ -96,6 +104,7 @@ function startSensors() {
       window.addEventListener('deviceorientation', handleOrientation);
     }
   }
+  startRenderLoop();
 }
 
 function handleOrientation(e) {
@@ -182,6 +191,7 @@ function scanSky() {
   setTimeout(() => {
     scanLine.style.display = 'none';
     computeVisible();
+    showPanel();
   }, 2000);
 }
 
@@ -227,7 +237,6 @@ function computeVisible() {
   scanResults = visible.slice(0, 14);
 
   drawOverlay();
-  showPanel();
 }
 
 // ── Draw Overlay ──
