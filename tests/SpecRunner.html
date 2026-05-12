@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Jasmine Spec Runner v5.1.1</title>
+  
+  <link rel="shortcut icon" type="image/png" href="https://cdnjs.cloudflare.com/ajax/libs/jasmine/5.1.1/jasmine_favicon.png">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jasmine/5.1.1/jasmine.css">
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jasmine/5.1.1/jasmine.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jasmine/5.1.1/jasmine-html.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jasmine/5.1.1/boot0.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jasmine/5.1.1/boot1.js"></script>
+
+  <!-- Load the spec as a module, then execute Jasmine manually -->
+  <script type="module">
+    // Prevent default onload execution
+    const originalOnload = window.onload;
+    window.onload = null;
+
+    // Await the spec import
+    await import('./starscope.spec.js');
+    
+    // Now trigger the Jasmine HTML reporter execution
+    originalOnload();
+  </script>
+</head>
+<body>
+</body>
+</html>

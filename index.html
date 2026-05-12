@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>StarScope</title>
+<link rel="stylesheet" href="styles/starscope.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- SPLASH -->
+  <div id="splash">
+    <div class="splash-stars"></div>
+    <div class="logo-wrap">
+      <div class="logo-ring">
+        <div class="logo-star">✦</div>
+      </div>
+    </div>
+    <div class="app-name">Star<span>Scope</span></div>
+    <div class="app-tagline">Point. Identify. Explore.</div>
+    <button class="start-btn">Launch</button>
+    <div class="splash-note">
+      Requires camera + location access<br>
+      Works best outdoors at night
+    </div>
+  </div>
+
+  <!-- PERMISSION SCREEN -->
+  <div id="perm-screen">
+    <div class="perm-icon">📡</div>
+    <div class="perm-title">Allow Access</div>
+    <div class="perm-desc">StarScope needs your camera and location to identify stars in real time.</div>
+    <button class="perm-btn">Allow Camera & Location</button>
+    <button class="perm-skip">Try demo mode instead →</button>
+  </div>
+
+  <!-- CAMERA VIEW -->
+  <div id="camera-view">
+    <video id="video" autoplay playsinline muted></video>
+    <div id="sim-sky" id="sim-sky"></div>
+    <canvas id="overlay-canvas"></canvas>
+    <div id="night-overlay"></div>
+    <div class="scan-line" id="scan-line"></div>
+
+    <!-- Crosshair -->
+    <div class="crosshair">
+      <div class="ch-corner ch-tl"></div>
+      <div class="ch-corner ch-tr"></div>
+      <div class="ch-corner ch-bl"></div>
+      <div class="ch-corner ch-br"></div>
+    </div>
+
+    <!-- HUD Top -->
+    <div id="hud-top">
+      <div class="hud-logo">Star<span>Scope</span></div>
+      <div class="hud-status">
+        <span class="status-dot"></span>LIVE<br>
+        <span id="hud-time"></span><br>
+        <span id="hud-loc">Locating...</span>
+      </div>
+    </div>
+
+    <!-- Star Panel -->
+    <div id="star-panel">
+      <div class="panel-header">
+        <div class="panel-title">✦ Stars in view</div>
+        <button class="panel-close">×</button>
+      </div>
+      <div id="star-list"></div>
+    </div>
+
+    <!-- HUD Bottom -->
+    <div id="hud-bottom">
+      <div class="compass-bar">
+        <div class="compass-val">AZ <strong id="val-az">---°</strong></div>
+        <div class="compass-val">ALT <strong id="val-alt">---°</strong></div>
+        <div class="compass-val">LAT <strong id="val-lat">--.-°</strong></div>
+        <div class="compass-val">LON <strong id="val-lon">--.-°</strong></div>
+      </div>
+      <button class="scan-btn">⊹ Identify Stars</button>
+    </div>
+  </div>
+
+  <!-- DETAIL MODAL -->
+  <div id="detail-modal">
+    <div class="modal-card">
+      <button class="modal-close">×</button>
+      <div class="modal-icon" id="modal-icon">★</div>
+      <div class="modal-name" id="modal-name">Sirius</div>
+      <div class="modal-type" id="modal-type">Star · Canis Major</div>
+      <div class="modal-facts" id="modal-facts"></div>
+    </div>
+  </div>
+
+</div>
+
+<script type="module" src="scripts/starscope.js"></script>
+</body>
+</html>
